@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Collections.Generic;
 using Sandbox.Common.ObjectBuilders;
@@ -96,7 +96,6 @@ namespace Dhr.HEAmmo
                     }
 
                     // Terminate its place in memory
-                    currentEffect.Close();
                     bleedingEntityList.RemoveAt(i);
                 }
                 else
@@ -127,18 +126,6 @@ namespace Dhr.HEAmmo
                 // Check if an effect already exists, if so, edit that, else 
                 if (existingEffectDic.TryGetValue(hitCharacter.EntityId, out bleedList))
                 {
-                    // Update movement speed
-                    if (bleedList.Count != 0)
-                    {
-                        movementMultiplier *= bleedList[0].MovementMultiplier;
-
-                    }
-
-                    foreach (var effect in bleedList)
-                    {
-                        // Override old speeds
-                        effect.MovementMultiplier = movementMultiplier;
-                    }
 
                     // Create new effect
                     BleedEffect newBleedEffect = new BleedEffect(damageDivided, movementMultiplier, originalMovementMultiplier, hitCharacter, ticksOfEffect);
@@ -183,7 +170,6 @@ namespace Dhr.HEAmmo
                 if (character.EntityId == effect.ID.EntityId)
                 {
                     // Close it
-                    effect.Close();
                     bleedingEntityList.RemoveAt(i);
                     effect = null;
                     return;
@@ -199,19 +185,11 @@ namespace Dhr.HEAmmo
             // Internal variables
             private float damage;
             private float startDamage;
-            private float speedMultiplier;
-            private float originalSpeedMultiplier;
             private int ticks;
             private IMyCharacter entity;
 
-            private float OGMaxSpeed;
-            private float OGMidSpeed;
-            private float OGSlowSpeed;
-            private float OGVerSlowSpeed;
-
             // Get for variables
             public float Damage { get { return damage; } }
-            public float MovementMultiplier { get { return speedMultiplier; } set { speedMultiplier = value; } }
             public IMyCharacter ID { get { return entity; } }
 
 
@@ -227,18 +205,10 @@ namespace Dhr.HEAmmo
                 // Set internal info to item
                 damage = DPS / 60;
                 startDamage = damage;
-                speedMultiplier = movementMultiplier;
-                originalSpeedMultiplier = OGsmovementMultiplier;
                 entity = character;
                 ticks = ticksOfEffect;
 
                 MyCharacterDefinition charDef = character.Definition as MyCharacterDefinition;
-
-                OGMaxSpeed = charDef.MaxSprintSpeed;
-                OGMidSpeed = charDef.MaxRunSpeed;
-                OGSlowSpeed = charDef.MaxWalkSpeed;
-                OGVerSlowSpeed = charDef.MaxCrouchWalkSpeed;
-
             }
 
             /// <summary>
@@ -269,58 +239,7 @@ namespace Dhr.HEAmmo
                 // Tack damage off for next tick
                 damage -= startDamage / ticks;
                 ticks -= 1;
-
-                if (MovementMultiplier < 0.5)
-                {
-                    entity.Crouch();
-                }
-
-                if (entity == MyAPIGateway.Session.Player.Character)
-                {
-                    RunMovementChange(OGMaxSpeed * MovementMultiplier, OGMidSpeed * MovementMultiplier, OGSlowSpeed * MovementMultiplier, OGVerSlowSpeed * MovementMultiplier, entity.Definition as MyCharacterDefinition);
-
-                }
-                else
-                {
-                    RunMovementChange(OGMaxSpeed, OGMidSpeed, OGSlowSpeed, OGVerSlowSpeed, entity.Definition as MyCharacterDefinition);
-
-                }
-            }
-
-            /// <summary>
-            /// Closes the effect
-            /// </summary>
-            public void Close()
-            {
-                MyAPIGateway.Utilities.ShowNotification("Closing: " + originalSpeedMultiplier + ", " + MovementMultiplier, 15000);
-
-                // Create new speeds
-
-                float max = OGMaxSpeed / originalSpeedMultiplier;
-                float mid = OGMidSpeed / originalSpeedMultiplier;
-                float slow = OGSlowSpeed / originalSpeedMultiplier;
-                float verSlow = OGVerSlowSpeed / originalSpeedMultiplier;
-
-                RunMovementChange(max, mid, slow, verSlow, entity.Definition as MyCharacterDefinition);
-            }
-
-            private void RunMovementChange(float Max, float Mid, float Low, float VeryLow, MyCharacterDefinition def)
-            {
-                def.MaxSprintSpeed = Max;
-
-                def.MaxRunSpeed = Mid;
-                def.MaxRunStrafingSpeed = Mid;
-                def.MaxBackrunSpeed = Mid;
-
-                def.MaxWalkSpeed = Low;
-                def.MaxWalkStrafingSpeed = Low;
-                def.MaxBackwalkSpeed = Low;
-
-                def.MaxCrouchWalkSpeed = VeryLow;
-                def.MaxCrouchStrafingSpeed = VeryLow;
-                def.MaxCrouchBackwalkSpeed = VeryLow;
             }
         }
-
     }
 }
